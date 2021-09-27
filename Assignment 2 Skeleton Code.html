@@ -1,27 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <title>Simple Terrain with Mouse Control</title>
+    <meta name="generator" content="BBEdit 10.5"/>
 
-<!-- saved from url=(0066)http://cs.boisestate.edu/~scutchin/cs464/codesnips/a2skeleton.html -->
-<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-<title>
-Assignment 2 Skeleton Code
-</title>
-</head><body>
+    <!-- load javascript helper code here -->
+    <script type="text/javascript" src="glMatrix_util.js"></script>
+    <script type="text/javascript" src="webgl-utils.js"></script>
+    <script type="text/javascript" src="mouse_util.js"></script>
 
-This is blocks of skeleton code
-
-<pre>
-........ code cut here ...
-&lt;head&gt;
-	&lt;meta charset="utf-8" /&gt;
-	&lt;title&gt;Simple Terrain with Mouse Control&lt;/title&gt;
-	&lt;meta name="generator" content="BBEdit 10.5" /&gt;
-
-&lt;!-- load javascript helper code here --!&gt;
-&lt;script type="text/javascript" src="glMatrix_util.js"&gt;&lt;/script&gt;
-&lt;script type="text/javascript" src="webgl-utils.js"&gt;&lt;/script&gt;
-&lt;script type="text/javascript" src="mouse_util.js"&gt;&lt;/script&gt;
-
-&lt;!-- define our shaders --&gt;
-&lt;script id="shader-fs" type="x-shader/x-fragment"&gt;
+    <!-- define our shaders -->
+    <script id="shader-fs" type="x-shader/x-fragment">
     precision mediump float;
 
     varying vec2 vTextureCoord;
@@ -36,9 +26,10 @@ This is blocks of skeleton code
 
         gl_FragColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));
     }
-&lt;/script&gt;
 
-&lt;script id="shader-vs" type="x-shader/x-vertex"&gt;
+    </script>
+
+    <script id="shader-vs" type="x-shader/x-vertex">
     attribute vec3 aVertexPosition;
     attribute vec3 aVertexNormal;
     attribute vec2 aTextureCoord;
@@ -53,73 +44,75 @@ This is blocks of skeleton code
     varying vec4 nclrVec;
 
     // lighting code
-    vec4 lightColor = [1.0,0.0,0.0, 1.0]; // a red light 
-    vec4 lightDirection = [0.0,-1.0,0.0, 1.0]; // light is straight down
+    vec4 lightColor = vec4(1.0,0.0,0.0,1.0); // a red light
+    vec3 lightDirection = vec3(0.0,-1.0,0.0); // light is straight down
     varying vec4 vertexLightColor; // the calcualed lighting color
-    
+
     void main(void) {
         nVertexPosition[0] = aVertexPosition[0];
         nVertexPosition[1] = 0.5;
         nVertexPosition[2] = aVertexPosition[2];
         vTextureCoord = aTextureCoord;
+
         clrVec = texture2D(uSampler,vTextureCoord);
-        nclrVec = normalize(clrVec);
-        nVertexPosition[1] = nclrVec[0]*nclrVec[0] + nclrVec[1]*nclrVec[1]+nclrVec[2]*nclrVec[2];
+      nclrVec = normalize(clrVec);
+      nVertexPosition[1] = nclrVec[0]*nclrVec[0] + nclrVec[1]*nclrVec[1]+nclrVec[2]*nclrVec[2];
 
         gl_Position = uPMatrix * uMVMatrix * vec4(nVertexPosition, 1.0);
- 
+
         //in here you need to calculate a light color for this vertex
         // how do we caclulate a light color.
         // vertexLightColor = lightColor would set the color but would be really simple.
-        
+
         // direction light pseudo code: we need a normal her, were do get the normal?
 
-        // normal = [0,1,0] as a test value: best if normal comes from attribute 
-           vertexLightColor = lightColor * dot(aVertexNormal, lightDirection);
-  
-        
-                
+        // normal = [0,1,0] as a test value: best if normal comes from attribute
+          vertexLightColor = lightColor * dot(aVertexNormal, lightDirection);
+
+
+
     }
-&lt;/script&gt;
 
-	
-&lt;script&gt; &lt;!-- define Javascript functions for drawing WebGL items --&gt;
+    </script>
 
-var gl;
 
-function initWebGLContext(aname) {
-  gl = null;
-  var canvas = document.getElementById(aname);
-  try {
-    // Try to grab the standard context. If it fails, fallback to experimental.
-    gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
-  }
-  catch(e) {}
-  
-  // If we don't have a GL context, give up now
-  if (!gl) {
-    alert("Unable to initialize WebGL. Your browser may not support it.");
-    gl = null;
-  }
-  gl.viewportWidth = canvas.width;
-  gl.viewportHeight = canvas.height;
-  return gl;
-}
-// define the function to initial WebGL and Setup Geometry Objects
-function initGLScene()
-{
-    // Initialize the WebGL Context - the gl engine for drawing things.
-    var gl = initWebGLContext("hellowebgl"); // The id of the Canvas Element
+    <script>
+
+    var gl;
+
+    function initWebGLContext(aname) {
+        gl = null;
+        var canvas = document.getElementById(aname);
+        try {
+            // Try to grab the standard context. If it fails, fallback to experimental.
+            gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+        } catch (e) {
+        }
+
+        // If we don't have a GL context, give up now
+        if (!gl) {
+            alert("Unable to initialize WebGL. Your browser may not support it.");
+            gl = null;
+        }
+        gl.viewportWidth = canvas.width;
+        gl.viewportHeight = canvas.height;
+        return gl;
+    }
+
+    // define the function to initial WebGL and Setup Geometry Objects
+    function initGLScene() {
+        // Initialize the WebGL Context - the gl engine for drawing things.
+        var gl = initWebGLContext("hellowebgl"); // The id of the Canvas Element
         if (!gl) // if fails simply return
-     {
-          return;
-     }
-     // succeeded in initializing WebGL system
-     return gl;     
-}
+        {
+            return;
+        }
+        // succeeded in initializing WebGL system
+        return gl;
+    }
 
 
-   function getShader(gl, id) {
+    function getShader(gl, id) {
         var shaderScript = document.getElementById(id);
         if (!shaderScript) {
             return null;
@@ -184,14 +177,13 @@ function initGLScene()
     }
 
 
+    // create our basic model and view matrix
+    var mvMatrix = mat4.create();
+    var mvMatrixStack = [];
+    // create our projection matrix for projecting from 3D to 2D.
+    var pMatrix = mat4.create();
 
-// create our basic model and view matrix
-var mvMatrix = mat4.create();
-var mvMatrixStack = [];
-// create our projection matrix for projecting from 3D to 2D.
-var pMatrix = mat4.create();
-
- function mvPushMatrix() {
+    function mvPushMatrix() {
         var copy = mat4.create();
         mat4.set(mvMatrix, copy);
         mvMatrixStack.push(copy);
@@ -204,45 +196,39 @@ var pMatrix = mat4.create();
         mvMatrix = mvMatrixStack.pop();
     }
 
-function setMatrixUniforms()
-{
+    function setMatrixUniforms() {
         gl.uniformMatrix4fv(shaderProgram.pMatrixUniform, false, pMatrix);
         gl.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, mvMatrix);
-}
+    }
 
 
+    // create and initialize our geometry objects
+    var terVertexPositionBuffer;
+    var terVertexTextureCoordBuffer;
+    var terVertexIndexBuffer;
+    var terNormalBuffer;
 
-
-// create and initialize our geometry objects
-var terVertexPositionBuffer;
-var terVertexTextureCoordBuffer;
-var terVertexIndexBuffer;
-var terNormalBuffer;
-
-function initGeometry()
- {
+    function initGeometry() {
         terVertexPositionBuffer = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, terVertexPositionBuffer);
-        
+
         vertices = [];
         nvertices = [];
         // create a 100 by 100 grid
-        for ( i=0; i &lt; 100; i++)
-        {
-           for (j = 0; j &lt; 100; j++)
-           {
-             vertices[0 + j*3 + i*100*3] = (j*1.0)/50.0 -1.0; // handle X index
-             vertices[1 + .....] = .... you fill this in with Y
-             vertices[2 + .....] = .... you fill this in with Z
+        for (i = 0; i < 100; i++) {
+            for (j = 0; j < 100; j++) {
+                vertices[0 + j * 3 + i * 100 * 3] = (j * 1.0) / 50.0 - 1.0; // handle X index
+                vertices[1 + j * 3 + i * 100 * 3] = Math.random(-1, 1);
+                vertices[2 + j * 3 + i * 100 * 3] = (i * 1.0) / 50.0 - 1.0;
 
-             nvertices[0 + ...] = 0.0;
-             nvertices[1 + ...] = 1.0; // create normals what is this normal?
-             nvertices[2 + ...] = 0.0;
-           }
+                nvertices[0 + j * 3 + i * 100 * 3] = 0;
+                nvertices[1 + j * 3 + i * 100 * 3] = 1; // create normals what is this normal?
+                nvertices[2 + j * 3 + i * 100 * 3] = 0;
+            }
         }
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
         terVertexPositionBuffer.itemSize = 3;
-        terVertexPositionBuffer.numItems = 100*100;
+        terVertexPositionBuffer.numItems = 100 * 100;
 
 
         terNormalBuffer = gl.createBuffer();
@@ -250,24 +236,22 @@ function initGeometry()
 
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(nvertices), gl.STATIC_DRAW);
         terNormalBuffer.itemSize = 3;
-        terNormalBuffer.numItems = 100*100;
+        terNormalBuffer.numItems = 100 * 100;
 
         terVertexTextureCoordBuffer = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, terVertexTextureCoordBuffer);
         textureCoords = [];
         tc = 0;
 
-        // calculate s &amp; t texture coordinates
-        for ( i=0; i &lt; 100; i++)
-        {
-           for (j = 0; j &lt; 100; j++)
-           {
-             textureCoords[tc++] = 0.0 + (j*1.0)/100.0;
-             textureCoords[tc++] = 0.0 + (i*1.0)/100.0;
-             
-           }
+        // calculate s & t texture coordinates
+        for (i = 0; i < 100; i++) {
+            for (j = 0; j < 100; j++) {
+                textureCoords[tc++] = 0.0 + (j * 1.0) / 100.0;
+                textureCoords[tc++] = 0.0 + (i * 1.0) / 100.0;
+
+            }
         }
-        
+
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureCoords), gl.STATIC_DRAW);
         terVertexTextureCoordBuffer.itemSize = 2;
         terVertexTextureCoordBuffer.numItems = tc;
@@ -278,66 +262,95 @@ function initGeometry()
         tvi = 0;
 
         // calculate the vertex numbers for the geometry
-        for ( i=0; i &lt; 99; i++)
-        {
-           for (j = 0; j &lt; 99; j++)
-           {
-             terVertexIndices[tvi++] = 0+j+i*100;
-             terVertexIndices[tvi++] = 1+j+i*100;
-             terVertexIndices[tvi++] = 0+j+(i+1)*100;
+        for (i = 0; i < 99; i++) {
+            for (j = 0; j < 99; j++) {
+                terVertexIndices[tvi++] = 0 + j + i * 100;
+                terVertexIndices[tvi++] = 1 + j + i * 100;
+                terVertexIndices[tvi++] = 0 + j + (i + 1) * 100;
 
-             terVertexIndices[tvi++] = ... you figure this out
-             terVertexIndices[tvi++] = ... you figure this out
-             terVertexIndices[tvi++] = ... you figure this out
-             
-           }
+                terVertexIndices[tvi++] = 0 + j + (i + 1) * 100;
+                terVertexIndices[tvi++] = 1 + j + (i + 1) * 100;
+                terVertexIndices[tvi++] = 1 + j + i * 100;
+
+            }
         }
         gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(terVertexIndices), gl.STATIC_DRAW);
         terVertexIndexBuffer.itemSize = 1;
         terVertexIndexBuffer.numItems = tvi;
     }
 
+    // function normalTri(pt1, pt2, pt3) {
+    //     // to make the math easier first we reverse our common point
+    //     // var negatept1;
+    //     // vec3.negate(pt1, negpt1);
+    //     // now calculate two vectors for the plane
+    //     // vec3.add(pt2, pt1, vecpt2);  // calculate vector pt1-->pt2
+    //     // vec3.add(pt3, pt1, vecpt3);  // cacluate vector pt1-->pt3
+    //
+    //     // now if we take the cross product that gives us the normal
+    //     // vec3.cross(vecpt2, vecpt3, normal);
+    //     // return normal;
+    // }
 
-.... handle textures in here ....
+    var exTexture;
+
+    function initTextures() {
+        // extexture = gl.createTexture();
+        // exTexture.image = new Image();
+        // exTexture.image.onload = function () {
+        //     handleLoadedTexture(exTexture)
+        // }
+        // exTexture.image.src = "box.png";
+    }
+
+    function handleLoadedTexture(texture) {
+        // gl.bindTexture(gl.Texture_2D, texture);
+        // gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+        // gl.texImage2D(gl.Texture_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, texture.image);
+        // gl.texParameteri(gl.Texture_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        // gl.texParameteri(gl.Texture_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        // gl.bindTexture(gl.Texture_2D, null);
+    }
 
 
+    //Initialize everything for starting up a simple webGL application
+    function startHelloWebGL() {
+        // first initialize webgl components
+        var gl = initGLScene();
 
-//Initialize everything for starting up a simple webGL application
-function startHelloWebGL()
-{
-   // first initialize webgl components 
-   var gl = initGLScene();
-   
-   // now build basic geometry objects.
-   initShaders();
-   initGeometry();
-   initTextures();
-   
-   gl.clearColor(0.4,0.4,0.4,1.0);
-   gl.enable(gl.DEPTH_TEST);
+        // now build basic geometry objects.
+        initShaders();
+        initGeometry();
+        initTextures();
 
-   // set mouse handlers for controlling rotation
-   var acanvas = document.getElementById("hellowebgl");
-   acanvas.onmousedown = handleMouseDown;
-   document.onmouseup = handleMouseUp;   // handle when mouse moves out of canvas
-   document.onmousemove = handleMouseMove;
-   // Draw the Scene
-   Frames();
-   // If doing an animation need to add code to rotate our geometry
-   
-}
 
-// This function draws a basic webGL scene
-// first it clears the framebuffer.
-// then we define our View positions for our camera using WebGL matrices.
-// OpenGL has convenience methods for this such as glPerspective().
-// finally we call the gl draw methods to draw our defined geometry objects.
-   var xRot = 0;
+        // set mouse handlers for controlling rotation
+        // var acanvas = document.getElementById("hellowebgl");
+        // acanvas.onmousedown = handleMouseDown;
+        // document.onmouseup = handleMouseUp;   // handle when mouse moves out of canvas
+        // document.onmousemove = handleMouseMove;
+
+
+        // // Draw the Scene
+        Frames();
+
+        // If doing an animation need to add code to rotate our geometry
+
+    }
+
+    // This function draws a basic webGL scene
+    // first it clears the framebuffer.
+    // then we define our View positions for our camera using WebGL matrices.
+    // OpenGL has convenience methods for this such as glPerspective().
+    // finally we call the gl draw methods to draw our defined geometry objects.
+    var xRot = 0;
     var yRot = 0;
     var zRot = 0;
 
     function drawScene() {
         gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
+        gl.clearColor(0.4, 0.4, 0.4, 1.0);
+        gl.enable(gl.DEPTH_TEST);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
         // set up the projection matrix
@@ -348,12 +361,13 @@ function startHelloWebGL()
         mat4.translate(mvMatrix, [0.0, 0.0, -5.0]);
 
         // handle the mouse controlled object rotation This transforms the model matrix by the mouse handler
-        mat4.multiply(mvMatrix,objRotationMatrix);
-
+        // mat4.multiply(mvMatrix, objRotationMatrix);
+        //
+        // mat4.rotate(mvMatrix, yRot / 180.0 * 3.145, [0, 1, 0]);
 
 
         // draw our primitives
-        
+
         gl.bindBuffer(gl.ARRAY_BUFFER, terVertexPositionBuffer);
         gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, terVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
@@ -369,22 +383,44 @@ function startHelloWebGL()
         gl.drawElements(gl.TRIANGLES, terVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
     }
 
+    var lastTime = 0;
 
-    ....... more code ....
-
-&lt;/script&gt;
-
-&lt;/head&gt;
-
-&lt;!-- declare the "body" of the HTML document--&gt;
-
-.... your canvas html tags go hear.....
-
-
-
-
-</pre>
+    function animate() {
+        var timeNow = new Date().getTime();
+        if (lastTime != 0) {
+            var elapsed = timeNow - lastTime;
+            yRot += (90 * elapsed) / 1000.0;
+            // here we could change variables to adjust rotations for animation
+        }
+        lastTime = timeNow;
+    }
 
 
+    function Frames() {
+        requestAnimFrame(Frames);
+        drawScene();
+        animate();
+    }
 
-</body></html>
+    </script>
+
+</head>
+
+<!-- declare the "body" of the HTML document-->
+
+<!-- the onload attribute specifies a javascript function to execute when the body tag is loaded into the browser -->
+
+<body onload="startHelloWebGL()">
+<h1>Model Simple Example</h1>
+
+<!-- embed the HTML5 Canvas Drawing object on the page.-->
+<!-- Name the canvas 'hellowebgl' for the javascript code. -->
+<canvas id="hellowebgl">
+    If you're seeing this your web browser doesn't support the &lt;canvas>&gt; element. Ouch!
+</canvas>
+
+</body>
+</html>
+
+
+
