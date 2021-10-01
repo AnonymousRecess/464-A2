@@ -2,10 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="utf-8" />
-    <title>Simple Terrain with Mouse Control</title>
+    <title>Lighted Terrain</title>
     <meta name="generator" content="BBEdit 10.5" />
 
-    <!-- load javascript helper code here -->
+    <!-- load matrix manipulation helper methods -->
     <script type="text/javascript" src="glMatrix_util.js"></script>
     <script type="text/javascript" src="webgl-utils.js"></script>
     <script type="text/javascript" src="mouse_util.js"></script>
@@ -15,18 +15,14 @@
     precision mediump float;
 
     varying vec2 vTextureCoord;
-    varying vec3 vLightWeighting;
+    varying vec3 vLightWeighting; // rgb color from lights.
+
     uniform sampler2D uSampler;
-    varying vec4 vertexLightColor;
 
     void main(void) {
-
-        // you have to add in lighting to this
-        // how could you use colorLight here to do that?
-
         vec4 tx_FragColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));
-
-        gl_FragColor = vec4(tx_FragColor.rbg * vLightWeighting, vertexLightColor);
+        // select color and simply scale by the lighint from ambient and direction.
+        gl_FragColor = vec4(tx_FragColor.rgb * vLightWeighting, tx_FragColor.a);
     }
 </script>
 
@@ -35,10 +31,8 @@
     attribute vec3 aVertexNormal;
     attribute vec2 aTextureCoord;
 
-    uniform mat3 uNMatrix;
     uniform mat4 uMVMatrix;
     uniform mat4 uPMatrix;
-
 
     varying vec2 vTextureCoord;
     varying vec3 nVertexPosition;
@@ -47,15 +41,15 @@
     varying vec4 nclrVec;
 
 
-
-    // lighting code
-    vec4 lightColor = vec4(1.0,0.0,1.0, 1.0); // a red light
-    vec3 lightDirection = vec3(0.0,-1.0,0.0); // light is straight down
-    varying vec3 ambient;
-    varying vec4 vertexLightColor; // the calcualed lighting color
+    // lighting components
+    uniform mat3 uNMatrix;
+    uniform vec3 uAmbientColor;  // ambient light
+    uniform vec3 uLightingDirection; // directional light
+    uniform vec3 uDirectionalColor; // color of directional light
     varying vec3 vLightWeighting;
 
     void main(void) {
+        // modify the height of the terrain
         nVertexPosition[0] = aVertexPosition[0];
         nVertexPosition[1] = 0.5;
         nVertexPosition[2] = aVertexPosition[2];
@@ -63,22 +57,14 @@
         clrVec = texture2D(uSampler,vTextureCoord);
         nclrVec = normalize(clrVec);
         nVertexPosition[1] = nclrVec[0]*nclrVec[0] + nclrVec[1]*nclrVec[1]+nclrVec[2]*nclrVec[2];
-
         gl_Position = uPMatrix * uMVMatrix * vec4(nVertexPosition, 1.0);
 
-        //in here you need to calculate a light color for this vertex
-        // how do we caclulate a light color.
-        // vertexLightColor = lightColor would set the color but would be really simple.
-
-        // direction light pseudo code: we need a normal her, were do get the normal?
-
-       vec3 normal = aVertexNormal;
+        // here we calculate the lighting information from vertex.
+       vec3 testNormal = aVertexNormal;
        vec3 transformedNormal = uNMatrix * aVertexNormal;
-       vertexLightColor = lightColor * dot(aVertexNormal, lightDirection);
-
-
-
-
+       //vec3 transformedNormal = aVertexNormal;
+float directionalLightWeighting = max(dot(transformedNormal, uLightingDirection), 0.0);
+       vLightWeighting = uAmbientColor + uDirectionalColor * directionalLightWeighting;
     }
 </script>
 
@@ -148,6 +134,7 @@
 
             if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
                 alert(gl.getShaderInfoLog(shader));
+                console.erro(gl.getShaderInfoLog(program));
                 return null;
             }
 
@@ -168,13 +155,16 @@
 
             if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
                 alert("Could not initialise shaders");
+                console.error(gl.getProgramInfoLog(program));
             }
 
             gl.useProgram(shaderProgram);
 
             shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition");
-            gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
 
+            gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
+            shaderProgram.vertexNormalAttribute = gl.getAttribLocation(shaderProgram, "aVertexNormal");
+            gl.enableVertexAttribArray(shaderProgram.vertexNormalAttribute);
             shaderProgram.textureCoordAttribute = gl.getAttribLocation(shaderProgram, "aTextureCoord");
             gl.enableVertexAttribArray(shaderProgram.textureCoordAttribute);
 
@@ -182,8 +172,13 @@
             shaderProgram.mvMatrixUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
             shaderProgram.samplerUniform = gl.getUniformLocation(shaderProgram, "uSampler");
 
+            // Lighting Code
+            shaderProgram.tnMatrixUniform = gl.getUniformLocation(shaderProgram, "uNMatrix");
+            shaderProgram.useLightingUniform = gl.getUniformLocation(shaderProgram, "uUseLighting");
+            shaderProgram.ambientColorUniform = gl.getUniformLocation(shaderProgram, "uAmbientColor");
+            shaderProgram.lightingDirectionUniform = gl.getUniformLocation(shaderProgram, "uLightingDirection");
+            shaderProgram.directionalColorUniform = gl.getUniformLocation(shaderProgram, "uDirectionalColor");
 
-            shaderProgram.tnM
         }
 
 
@@ -215,6 +210,7 @@
             var normalMat = mat3.create();
             mat4.toInverseMat3(mvMatrix, normalMat);
             mat3.transpose(normalMat);
+            gl.uniformMatrix3fv(shaderProgram.tnMatrixUniform, false, normalMat);
 
         }
 
@@ -453,76 +449,69 @@
             gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
             gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-            // set up the projection matrix
             mat4.perspective(45, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0, pMatrix);
 
             mat4.identity(mvMatrix);
 
             mat4.translate(mvMatrix, [0.0, 0.0, -5.0]);
+            // handle the mouse controlled object rotation
+            mat4.multiply(mvMatrix,objRotationMatrix);
 
-           //ROTATE TEST CODE
-           //  mat4.rotate(mvMatrix, xRot/180.0*3.1415, [1, 0, 0]);
-           //  mat4.rotate(mvMatrix, yRot/180.0*3.145, [0,1,0]);
-
-            // handle the mouse controlled object rotation This transforms the model matrix by the mouse handler
-            mat4.multiply(mvMatrix,objRotationMatrix );
             gl.bindBuffer(gl.ARRAY_BUFFER, terVertexPositionBuffer);
             gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, terVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
+// bind in the Normals for lighting
+            gl.bindBuffer(gl.ARRAY_BUFFER, terNormalBuffer);
+            gl.vertexAttribPointer(shaderProgram.vertexNormalAttribute, terNormalBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
-            // gl.bindBuffer(gl.ARRAY_BUFFER, terNormalBuffer);
-            // gl.vertexAttribPointer(shaderProgram.vertexNormalAttribute, terNormalBuffer.itemSize, gl.FLOAT, false, 0, 0);
-            //
-            // gl.bindBuffer(gl.ARRAY_BUFFER, terVertexTextureCoordBuffer);
-            // gl.vertexAttribPointer(shaderProgram.textureCoordAttribute, terVertexTextureCoordBuffer.itemSize, gl.FLOAT, false, 0, 0);
-            //
-            // gl.activeTexture(gl.TEXTURE0);
-            // gl.bindTexture(gl.TEXTURE_2D, exTexture);
-            // gl.uniform1i(shaderProgram.samplerUniform, 0);
-            // gl.uniform1i(shaderProgram.samplerUniform, 0);
-            // gl.uniform1i(shaderProgram.useLightingUniform, true);
-
-
-
-
-
-            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, terVertexIndexBuffer);
-            mat4.translate(mvMatrix, [-2.0, 0.0, 0.0]);
-
-            //Bind normals
             gl.bindBuffer(gl.ARRAY_BUFFER, terVertexTextureCoordBuffer);
             gl.vertexAttribPointer(shaderProgram.textureCoordAttribute, terVertexTextureCoordBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
             gl.activeTexture(gl.TEXTURE0);
             gl.bindTexture(gl.TEXTURE_2D, exTexture);
             gl.uniform1i(shaderProgram.samplerUniform, 0);
+            gl.uniform1i(shaderProgram.samplerUniform, 0);
+            gl.uniform1i(shaderProgram.useLightingUniform, true);
+// lighting code
+            gl.uniform3f(
+                shaderProgram.ambientColorUniform,
+                1.0,
+                0.0,
+                0.0
+            );
+
+            var lightingDirection = [
+                0.0,
+                -1.0,
+                0.0,
+            ];
+            var adjustedLD = vec3.create();
+            vec3.normalize(lightingDirection, adjustedLD);
+            vec3.scale(adjustedLD, -1);
+            gl.uniform3fv(shaderProgram.lightingDirectionUniform, adjustedLD);
+
+            gl.uniform3f(
+                shaderProgram.directionalColorUniform,
+                1.0,
+                0.5,
+                0.5
+            );
 
             gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, terVertexIndexBuffer);
+            mat4.translate(mvMatrix, [-2.0, 0.0, 0.0]);
 
-            gl.drawElements(gl.TRIANGLES, terVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
-            // Light
-
-
-
-
-
-
-
-            for (i=0; i <3; i++)
+            for(i = 0; i < 3; i++)
             {
-                for(j=0; j < 3; j++)
+                for (j =0; j < 3; j++)
                 {
                     setMatrixUniforms();
                     gl.drawElements(gl.TRIANGLES, terVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
-                    mat4.translate(mvMatrix, [2.0,0.0,0.0]);
+                    mat4.translate(mvMatrix, [2.0, 0.0, 0.0]);
                 }
-                mat4.translate(mvMatrix, [-6.0,0.0,-2.0]);
+                mat4.translate(mvMatrix,[-6.0,0.0,-2.0]);
             }
 
-
-
         }
-
 
 
     </script>
