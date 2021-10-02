@@ -15,7 +15,7 @@
     precision mediump float;
 
     varying vec2 vTextureCoord;
-    varying vec3 vLightWeighting; // rgb color from lights.
+    varying vec3 vLightWeighting;
 
     uniform sampler2D uSampler;
 
@@ -34,6 +34,9 @@
     uniform mat4 uMVMatrix;
     uniform mat4 uPMatrix;
 
+    uniform mat3 uNMatrix;
+    uniform vec3 ambientColor;  // ambient light color
+    uniform vec3 lightDirection; // directional light
     varying vec2 vTextureCoord;
     varying vec3 nVertexPosition;
     uniform sampler2D uSampler;
@@ -41,11 +44,8 @@
     varying vec4 nclrVec;
 
 
-    // lighting components
-    uniform mat3 uNMatrix;
-    uniform vec3 uAmbientColor;  // ambient light
-    uniform vec3 uLightingDirection; // directional light
-    uniform vec3 uDirectionalColor; // color of directional light
+
+    uniform vec3 directColor; // color of directional light
     varying vec3 vLightWeighting;
 
     void main(void) {
@@ -63,8 +63,8 @@
        vec3 testNormal = aVertexNormal;
        vec3 transformedNormal = uNMatrix * aVertexNormal;
        //vec3 transformedNormal = aVertexNormal;
-float directionalLightWeighting = max(dot(transformedNormal, uLightingDirection), 0.0);
-       vLightWeighting = uAmbientColor + uDirectionalColor * directionalLightWeighting;
+float lightDirectionWeight = max(dot(transformedNormal, lightDirection), 0.0);
+       vLightWeighting = ambientColor + directColor * lightDirectionWeight;
     }
 </script>
 
@@ -171,13 +171,12 @@ float directionalLightWeighting = max(dot(transformedNormal, uLightingDirection)
             shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
             shaderProgram.mvMatrixUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
             shaderProgram.samplerUniform = gl.getUniformLocation(shaderProgram, "uSampler");
-
-            // Lighting Code
             shaderProgram.tnMatrixUniform = gl.getUniformLocation(shaderProgram, "uNMatrix");
-            shaderProgram.useLightingUniform = gl.getUniformLocation(shaderProgram, "uUseLighting");
-            shaderProgram.ambientColorUniform = gl.getUniformLocation(shaderProgram, "uAmbientColor");
-            shaderProgram.lightingDirectionUniform = gl.getUniformLocation(shaderProgram, "uLightingDirection");
-            shaderProgram.directionalColorUniform = gl.getUniformLocation(shaderProgram, "uDirectionalColor");
+            shaderProgram.lightingDirectionUniform = gl.getUniformLocation(shaderProgram, "lightDirection");
+            shaderProgram.directionalColorUniform = gl.getUniformLocation(shaderProgram, "directColor");
+            shaderProgram.useLightingUniform = gl.getUniformLocation(shaderProgram, "Lighting");
+            shaderProgram.ambientColorUniform = gl.getUniformLocation(shaderProgram, "ambientColor");
+
 
         }
 
@@ -361,14 +360,12 @@ float directionalLightWeighting = max(dot(transformedNormal, uLightingDirection)
         }
 
 
-        //mouse_util.js
-        // helper skeleton controls for mouse movements.
+
 
         function degToRad(degrees) {
             return degrees * Math.PI / 180;
         }
 
-        // variable that is true if the mouse button is pressed down
         var mouseDown = false;
         var lastMouseX = null;
         var lastMouseY = null;
@@ -387,7 +384,7 @@ float directionalLightWeighting = max(dot(transformedNormal, uLightingDirection)
 
         }
 
-        // based on mouse movement calculate rotation values.
+
         function handleMouseMove(event) {
             if (!mouseDown) {
                 return;
@@ -399,19 +396,14 @@ float directionalLightWeighting = max(dot(transformedNormal, uLightingDirection)
                 var deltaX = newX - lastMouseX;
                 var newRotationMatrix = mat4.create();
                 mat4.identity(newRotationMatrix);
-                // rotate around Y axis
                 mat4.rotate(newRotationMatrix, degToRad(deltaX / 10), [0, 1, 0]);
 
                 var deltaY = newY - lastMouseY;
-                // rotate around the X axis
                 mat4.rotate(newRotationMatrix, degToRad(deltaY / 10), [1, 0, 0]);
 
                 mat4.multiply(newRotationMatrix, objRotationMatrix, objRotationMatrix);
 
-                // objRotrationMatrix is used in drawScene to rotate the view.
-                // this is the 'output' of this method.
-                // if you use it in draw scene to rotate the first transformation in the pipeline
-                //  everything will work for you.
+
 
 
                 lastMouseX = newX
@@ -460,7 +452,7 @@ float directionalLightWeighting = max(dot(transformedNormal, uLightingDirection)
             gl.bindBuffer(gl.ARRAY_BUFFER, terVertexPositionBuffer);
             gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, terVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
-// bind in the Normals for lighting
+
             gl.bindBuffer(gl.ARRAY_BUFFER, terNormalBuffer);
             gl.vertexAttribPointer(shaderProgram.vertexNormalAttribute, terNormalBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
@@ -472,12 +464,10 @@ float directionalLightWeighting = max(dot(transformedNormal, uLightingDirection)
             gl.uniform1i(shaderProgram.samplerUniform, 0);
             gl.uniform1i(shaderProgram.samplerUniform, 0);
             gl.uniform1i(shaderProgram.useLightingUniform, true);
-// lighting code
+
             gl.uniform3f(
                 shaderProgram.ambientColorUniform,
-                1.0,
-                0.0,
-                0.0
+                0.149,0.141,0.912
             );
 
             var lightingDirection = [
@@ -492,9 +482,7 @@ float directionalLightWeighting = max(dot(transformedNormal, uLightingDirection)
 
             gl.uniform3f(
                 shaderProgram.directionalColorUniform,
-                1.0,
-                0.5,
-                0.5
+                0.085,0.912,0.035
             );
 
             gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, terVertexIndexBuffer);
