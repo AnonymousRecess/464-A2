@@ -57,3 +57,4 @@ I saw more examples using vec3 to denote lighting as the alpha value didn't seem
 * [A2 Provided Skeleton Code] http://cs.boisestate.edu/~scutchin/cs464/codesnips/a2skeleton.html
 * [Mouse balll handler] http://cs.boisestate.edu/~scutchin/cs464/codesnips/mouse_ball.html
 * [MouseEvent Object Properties and Methods] https://www.w3schools.com/jsref/obj_mouseevent.asp
+* [Jackson Edwards] - Student in this class that I talked about how to implement features with such as the mouse interaction
