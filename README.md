@@ -15,6 +15,8 @@ Functionality for scaling and rotating the image was also required.
 
 * README.md - This file
 * box.png - Texture loaded for the terrain generation
+* example1.png - Example of site with model slightly titled
+* example2.png - Example of site with model viewed from above and zoomed out a bit
 * A2 Modeling.html - Javascript code that initializes shaders, calculates vectors and implements other required functionality before drawing the scene
 * Utilities
   * glMatrix_utils.js - Javascript matrix utilities
